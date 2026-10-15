@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablet da Linha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* tablet na linha: alvos de toque grandes (>= 56px), alto contraste, uma coisa por vez */
+    --bg:#0B0E13; --surface:#121720; --surface-2:#1A212C; --border:#242C38;
+    --fg:#ECF1F6; --muted:#8A96A6; --accent:#4C8DFF;
+    --ok:#2FBE6B; --warn:#E8B93A; --crit:#F2843B; --down:#EF4659;
+    --font-display:'Archivo','Arial Narrow',sans-serif;
+    --font-body:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+    --font-mono:'IBM Plex Mono','Courier New',monospace;
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#F2F4F7; --surface:#FFFFFF; --surface-2:#ECEFF3; --border:#D7DCE3;
+      --fg:#11161D; --muted:#5B6675; --accent:#2A63E0;
+      --ok:#1C9955; --warn:#AD7E05; --crit:#C85F1D; --down:#CE2B3E;
+      color-scheme: light;
+    }
+  }
+  *{ box-sizing:border-box; }
+  [hidden]{ display:none !important; }
+  body{
+    margin:0; background:var(--bg); color:var(--fg); font-family:var(--font-body);
+    padding-inline:max(16px, env(safe-area-inset-left,0px)); padding-block:18px 40px;
+  }
+  .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+  .wrap{ max-width:900px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    border-bottom:1px solid var(--border); padding-bottom:14px; }
+  h1{ font-family:var(--font-display); font-weight:800; font-size:clamp(20px,4vw,26px); margin:0; letter-spacing:-0.01em; }
+  .badge{ font-family:var(--font-mono); font-size:11px; color:var(--muted); border:1px solid var(--border);
+    border-radius:999px; padding:2px 8px; margin-left:8px; vertical-align:middle; }
+  .conn{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+  .conn .dot{ width:10px; height:10px; border-radius:50%; background:var(--ok); }
+  .conn.off .dot{ background:var(--down); }
+
+  .banner{ border:1px solid var(--down); background:color-mix(in srgb, var(--down) 14%, var(--surface));
+    border-radius:10px; padding:10px 14px; font-size:13.5px; font-weight:600; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; }
+  .card-title{ font-family:var(--font-display); font-weight:700; font-size:15px; letter-spacing:.01em; margin:0 0 14px; }
+  .card-title small{ font-family:var(--font-body); font-weight:400; color:var(--muted); margin-left:8px; font-size:12px; }
+
+  .ctx-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  .field .static{ font-family:var(--font-display); font-weight:800; font-size:26px; min-height:56px; display:flex; align-items:center; }
+  .input{
+    min-height:56px; width:100%; font:inherit; font-size:20px; font-weight:600; color:var(--fg);
+    background:var(--surface-2); border:2px solid var(--border); border-radius:12px; padding:0 14px;
+  }
+  .input.mono{ font-family:var(--font-mono); }
+  .input:focus{ outline:none; border-color:var(--accent); }
+  .input.bad{ border-color:var(--down); }
+  select.input{ appearance:none; -webkit-appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 22px) 26px, calc(100% - 16px) 26px; background-size:6px 6px,6px 6px; background-repeat:no-repeat; padding-right:38px; }
+
+  .actions{ display:flex; align-items:center; gap:14px; margin-top:16px; flex-wrap:wrap; }
+  .btn{ min-height:56px; padding:0 24px; border-radius:12px; border:2px solid var(--border); background:var(--surface-2);
+    color:var(--fg); font:inherit; font-size:17px; font-weight:700; cursor:pointer; }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn:disabled{ opacity:.5; cursor:default; }
+  .btn:focus-visible{ outline:3px solid var(--accent); outline-offset:3px; }
+  .msg{ font-size:14px; font-weight:600; }
+  .msg.ok{ color:var(--ok); } .msg.err{ color:var(--down); } .msg.info{ color:var(--muted); }
+  .dirty-tag{ font-size:12px; color:var(--warn); font-weight:600; }
+
+  .post{ display:flex; flex-direction:column; gap:14px; padding:18px; background:var(--surface);
+    border:1px solid var(--border); border-left-width:6px; border-radius:14px; }
+  .post.s-normal{ border-left-color:var(--ok); } .post.s-atencao{ border-left-color:var(--warn); }
+  .post.s-critico{ border-left-color:var(--crit); } .post.s-parado{ border-left-color:var(--down); }
+  .post-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .post-name{ font-family:var(--font-display); font-weight:800; font-size:21px; }
+  .post-meta{ color:var(--muted); font-size:13px; }
+  .post-meta strong{ color:var(--accent); }
+  .status-row{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  @media (max-width:560px){ .status-row{ grid-template-columns:repeat(2,1fr); } }
+  .sbtn{ min-height:64px; border-radius:12px; border:2px solid var(--border); background:var(--surface-2); color:var(--fg);
+    font:inherit; font-size:16px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .sbtn .d{ width:12px; height:12px; border-radius:50%; flex:none; }
+  .sbtn[data-s="normal"] .d{ background:var(--ok); } .sbtn[data-s="atencao"] .d{ background:var(--warn); }
+  .sbtn[data-s="critico"] .d{ background:var(--crit); } .sbtn[data-s="parado"] .d{ background:var(--down); }
+  .sbtn.active{ color:#0B0E13; border-color:transparent; }
+  .sbtn.active[data-s="normal"]{ background:var(--ok); } .sbtn.active[data-s="atencao"]{ background:var(--warn); }
+  .sbtn.active[data-s="critico"]{ background:var(--crit); } .sbtn.active[data-s="parado"]{ background:var(--down); }
+  .sbtn.active .d{ background:#0B0E13 !important; }
+  .sbtn:disabled{ opacity:.6; }
+  .sbtn:focus-visible{ outline:3px solid var(--accent); outline-offset:3px; }
+  .post-msg{ font-size:13px; min-height:18px; }
+  .note{ font-size:12px; color:var(--muted); line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <h1>Tablet da Linha <span class="badge" id="badge">demonstração</span></h1>
+    <div class="conn" id="conn"><span class="dot"></span><span id="connText">—</span></div>
+  </div>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <div class="card">
+    <h2 class="card-title">PRODUÇÃO ATUAL <small>preencha quando mudar o modelo, a versão ou a ordem</small></h2>
+    <div class="ctx-grid">
+      <div class="field"><label>Linha</label><div class="static" id="linhaValue">—</div></div>
+      <div class="field"><label for="modeloSelect">Modelo</label><select class="input" id="modeloSelect"></select></div>
+      <div class="field"><label for="versaoSelect">Versão</label><select class="input" id="versaoSelect"></select></div>
+      <div class="field"><label for="ordemInput">Nº da ordem</label>
+        <input class="input mono" id="ordemInput" type="text" inputmode="numeric" autocomplete="off" placeholder="0000000000"></div>
+      <div class="field"><label for="qtdInput">Qtd. da ordem</label>
+        <input class="input mono" id="qtdInput" type="number" inputmode="numeric" min="1" placeholder="0"></div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="saveCtx" type="button">Salvar produção</button>
+      <span class="dirty-tag" id="dirtyTag" hidden>● alterações ainda não salvas</span>
+      <span class="msg info" id="ctxMsg"></span>
+    </div>
+  </div>
+
+  <div id="posts"></div>
+
+  <p class="note" id="noteText">Toque no status do posto para avisar a Logística. O painel da Logística atualiza em poucos segundos.</p>
+</div>
+
+<script>
+(function(){
+  // =====================================================================
+  //  CONFIGURAÇÃO — cole aqui as duas URLs do Power Automate
+  // =====================================================================
+  var CONFIG = {
+    // URL do fluxo que LÊ (o mesmo API_LerPainel que o painel da Logística usa)
+    API_LER_URL: 'https://defaultd2007bef127d459197ac10d72fe280.31.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/14/workflows/c7f20f562789498b89676fe2b0766310/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=zAOM0xZWdgXJqhA2Rel9vJCr1u5qmi3iVOF0C4ywMdI',
+    // URL do fluxo que GRAVA (API_GravarPainel — vamos criar)
+    API_GRAVAR_URL: 'https://defaultd2007bef127d459197ac10d72fe280.31.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/18/workflows/dd06f2ff2cb94e15b79cc1f926014ac4/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=4FNVqqFg239XqH3AHkHSob72wefIqWc8KxOoqQccbgc',
+    POLL_MS: 5000,
+    STALE_MS: 20000
+  };
+  var LIVE = !!(CONFIG.API_LER_URL && CONFIG.API_GRAVAR_URL);
+
+  var STATUSES = ['normal','atencao','critico','parado'];
+  var LABELS = { normal:'Normal', atencao:'Atenção', critico:'Crítico', parado:'Parado' };
+  // o SharePoint guarda o texto com acento, igual ao que está na lista
+  var STATUS_SP = { normal:'Normal', atencao:'Atenção', critico:'Crítico', parado:'Parado' };
+
+  var MODELO_VERSOES = {
+    'NE09F':['3A','3B','3C','3D','3E'], 'NE09R':['3A','3B','3E'],
+    'NE12F':['3A','3B','3C','3D','3E'], 'NE12R':['3E','3N','3T'],
+    'NE18F':['3A','3B'], 'NE18R':['3A','3B'], 'NE24F':['3A'], 'NE24R':['2N']
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var postsEl = $('posts'), bannerEl = $('banner'), connEl = $('conn'), connText = $('connText');
+  var modeloSel = $('modeloSelect'), versaoSel = $('versaoSelect'), ordemIn = $('ordemInput'), qtdIn = $('qtdInput');
+  var saveBtn = $('saveCtx'), ctxMsg = $('ctxMsg'), dirtyTag = $('dirtyTag');
+
+  var posts = [];             // lista vinda do SharePoint
+  var pending = {};           // posto -> { status, until }  (toque recente ainda não confirmado)
+  var postMsg = {};           // posto -> { text, cls }
+  var ctxDirty = false;
+  var lastOkAt = 0, lastError = '';
+
+  // ---------- utilidades ----------
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
+  function clean(s){ return String(s == null ? '' : s).trim(); }
+  function normStatus(s){
+    var t = clean(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+    return STATUSES.indexOf(t) >= 0 ? t : 'normal';
+  }
+
+  // ---------- chamadas ao fluxo ----------
+  // Content-Type "text/plain" de propósito: é um pedido "simples" para o navegador,
+  // então ele NÃO faz a checagem prévia (preflight/OPTIONS), que o Power Automate não responde.
+  function enviar(payload){
+    if (!LIVE) return new Promise(function(res){ setTimeout(function(){ res({ ok:true }); }, 300); });
+    return fetch(CONFIG.API_GRAVAR_URL, {
+      method:'POST', headers:{ 'Content-Type':'text/plain;charset=UTF-8' }, body: JSON.stringify(payload)
+    }).then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    });
+  }
+
+  function aplicarLeitura(data){
+    var c = (data && data.contexto) || {};
+    var linha = clean(c.linha) || '—';
+    $('linhaValue').textContent = linha;
+    if (!ctxDirty){
+      var modelo = clean(c.modelo);
+      if (modelo && MODELO_VERSOES[modelo]){
+        modeloSel.value = modelo; fillVersoes(); versaoSel.value = clean(c.versao);
+      }
+      ordemIn.value = clean(c.numeroOrdem);
+      qtdIn.value = clean(c.qtdOrdem);
+    }
+    posts = ((data && data.postos) || []).map(function(r){
+      return { posto:clean(r.posto), name:clean(r.descricao) || '(sem descrição)', item:clean(r.codigo),
+               qty:r.qtdFechar, status:normStatus(r.status) };
+    }).sort(function(a,b){ return a.posto < b.posto ? -1 : 1; });
+    // um toque recente só some quando o servidor confirma OU o prazo acaba
+    Object.keys(pending).forEach(function(k){
+      var p = posts.find(function(x){ return x.posto === k; });
+      if (!p || p.status === pending[k].status || Date.now() > pending[k].until) delete pending[k];
+    });
+  }
+
+  function poll(){
+    var ctrl = ('AbortController' in window) ? new AbortController() : null;
+    var to = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 15000);
+    fetch(CONFIG.API_LER_URL, { cache:'no-store', signal: ctrl ? ctrl.signal : undefined })
+      .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function(d){ aplicarLeitura(d); lastOkAt = Date.now(); lastError = ''; })
+      .catch(function(e){ lastError = e && e.message ? e.message : String(e); })
+      .then(function(){ clearTimeout(to); renderPosts(); renderConn(); setTimeout(poll, CONFIG.POLL_MS); });
+  }
+
+  // ---------- contexto ----------
+  function fillModelos(){
+    Object.keys(MODELO_VERSOES).forEach(function(m){
+      var o = document.createElement('option'); o.value = m; o.textContent = m; modeloSel.appendChild(o);
+    });
+  }
+  function fillVersoes(){
+    versaoSel.innerHTML = '';
+    (MODELO_VERSOES[modeloSel.value] || []).forEach(function(v){
+      var o = document.createElement('option'); o.value = v; o.textContent = v; versaoSel.appendChild(o);
+    });
+  }
+  function markDirty(){ ctxDirty = true; dirtyTag.hidden = false; ctxMsg.textContent = ''; ordemIn.classList.remove('bad'); qtdIn.classList.remove('bad'); }
+
+  modeloSel.addEventListener('change', function(){ fillVersoes(); markDirty(); });
+  versaoSel.addEventListener('change', markDirty);
+  ordemIn.addEventListener('input', markDirty);
+  qtdIn.addEventListener('input', markDirty);
+
+  saveBtn.addEventListener('click', function(){
+    var ordem = clean(ordemIn.value), qtd = clean(qtdIn.value), ok = true;
+    if (!/^\d{4,15}$/.test(ordem)){ ordemIn.classList.add('bad'); ok = false; }
+    if (!/^\d+$/.test(qtd) || parseInt(qtd,10) < 1){ qtdIn.classList.add('bad'); ok = false; }
+    if (!ok){ setCtxMsg('Confira o nº da ordem (só números) e a quantidade.', 'err'); return; }
+    saveBtn.disabled = true; setCtxMsg('Salvando…', 'info');
+    enviar({ acao:'contexto', modelo:modeloSel.value, versao:versaoSel.value, numeroOrdem:ordem, qtdOrdem:qtd })
+      .then(function(){ ctxDirty = false; dirtyTag.hidden = true; setCtxMsg('✔ Produção salva. A Logística já vai ver.', 'ok'); })
+      .catch(function(e){ setCtxMsg('Não salvou (' + (e.message || e) + '). Tente de novo.', 'err'); })
+      .then(function(){ saveBtn.disabled = false; });
+  });
+  function setCtxMsg(t, cls){ ctxMsg.textContent = t; ctxMsg.className = 'msg ' + cls; }
+
+  // ---------- postos ----------
+  function setStatus(posto, status){
+    var p = posts.find(function(x){ return x.posto === posto; });
+    if (!p || (pending[posto] ? pending[posto].status : p.status) === status) return;
+    var anterior = p.status;
+    pending[posto] = { status:status, until: Date.now() + 15000 };
+    postMsg[posto] = { text:'Enviando…', cls:'info' };
+    renderPosts();
+    enviar({ acao:'status', posto:posto, status:STATUS_SP[status] })
+      .then(function(){
+        if (!LIVE) p.status = status;
+        postMsg[posto] = { text:'✔ Enviado: ' + LABELS[status], cls:'ok' };
+      })
+      .catch(function(e){
+        delete pending[posto]; p.status = anterior;
+        postMsg[posto] = { text:'Não enviou (' + (e.message || e) + '). Toque de novo.', cls:'err' };
+      })
+      .then(function(){
+        renderPosts();
+        setTimeout(function(){ if (postMsg[posto] && postMsg[posto].cls === 'ok'){ delete postMsg[posto]; renderPosts(); } }, 4000);
+      });
+  }
+
+  function renderPosts(){
+    if (!posts.length){ postsEl.innerHTML = '<p class="note">Aguardando a lista de postos…</p>'; return; }
+    postsEl.innerHTML = posts.map(function(p){
+      var cur = pending[p.posto] ? pending[p.posto].status : p.status;
+      var m = postMsg[p.posto] || { text:'', cls:'info' };
+      return '<div class="post s-' + cur + '" style="margin-bottom:14px">' +
+        '<div class="post-head"><span class="post-name">' + esc(p.posto) + ' · ' + esc(p.name) + '</span>' +
+        '<span class="post-meta mono">' + esc(p.item) + ' · meta <strong>' + esc(p.qty) + ' un.</strong></span></div>' +
+        '<div class="status-row">' + STATUSES.map(function(s){
+          return '<button type="button" class="sbtn' + (s === cur ? ' active' : '') + '" data-posto="' + esc(p.posto) + '" data-s="' + s + '" aria-pressed="' + (s === cur) + '"><span class="d"></span>' + LABELS[s] + '</button>';
+        }).join('') + '</div>' +
+        '<div class="post-msg msg ' + m.cls + '">' + esc(m.text) + '</div></div>';
+    }).join('');
+  }
+  postsEl.addEventListener('click', function(ev){
+    var b = ev.target.closest('.sbtn'); if (!b) return;
+    setStatus(b.dataset.posto, b.dataset.s);
+  });
+
+  // ---------- conexão ----------
+  function renderConn(){
+    var stale = LIVE && (Date.now() - lastOkAt > CONFIG.STALE_MS);
+    connEl.className = 'conn' + (stale ? ' off' : '');
+    connText.textContent = !LIVE ? 'modo demonstração' : stale ? 'sem conexão' : 'conectado';
+    if (LIVE && stale){
+      bannerEl.hidden = false;
+      bannerEl.textContent = (lastOkAt ? 'Sem conexão há ' + Math.floor((Date.now()-lastOkAt)/1000) + 's. ' : 'Ainda não consegui ler o SharePoint. ') +
+        'O que você tocar agora pode não chegar à Logística. ' + (lastError ? '(' + lastError + ')' : '');
+    } else bannerEl.hidden = true;
+  }
+
+  // ---------- início ----------
+  fillModelos(); fillVersoes();
+  if (LIVE){
+    $('badge').textContent = 'ao vivo';
+    poll();
+  } else {
+    lastOkAt = Date.now();
+    $('linhaValue').textContent = 'AF1';
+    modeloSel.value = 'NE09F'; fillVersoes(); versaoSel.value = '3A';
+    ordemIn.value = '4007158293'; qtdIn.value = '150';
+    posts = [{ posto:'L1T1OP001', name:'Base Gabinete 09-12K', item:'A29837501', qty:40, status:'normal' }];
+    renderPosts();
+  }
+  renderConn();
+  setInterval(renderConn, 1000);
+})();
+</script>
+</body>
+</html>
